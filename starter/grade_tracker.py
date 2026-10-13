@@ -35,10 +35,6 @@ def load_students(filepath: str) -> list[dict]:
     Raises:
         FileNotFoundError: if the CSV file doesn't exist.
     """
-    # TODO: Open the file with open(), use csv.DictReader to read rows,
-    #       return a list of dicts.
-    #       Hint: use "with open(filepath) as f:" and a list comprehension
-    #       or a for loop to collect rows.
 
     student_list = []
     try:
@@ -70,10 +66,6 @@ def calculate_average(grades: list) -> float | None:
         The average as a float, rounded to 1 decimal place.
         Returns None if there are no valid grades.
     """
-    # TODO: Convert each item to float using try/except.
-    #       Skip items that raise ValueError or are empty strings.
-    #       If the resulting list is empty, return None.
-    #       Otherwise return round(sum / count, 1).
 
     sum_grades = 0
     count = 0
@@ -83,9 +75,12 @@ def calculate_average(grades: list) -> float | None:
             float_number = float(grade)
             sum_grades += float_number
             count += 1
-        except ValueError:
+        except (ValueError, TypeError):
             continue
 
+    if count == 0:
+        return None
+    
     return round(sum_grades / count, 1)
 
 # ============================================================
@@ -110,7 +105,6 @@ def get_letter_grade(average: float | None) -> str:
     Returns:
         The letter grade as a string.
     """
-    # TODO: Use if/elif/else to return the correct letter grade.
     
     if average >= 90:
         return "A"
@@ -146,14 +140,7 @@ def generate_report(students: list[dict]) -> dict:
             "students":         list of dicts, each with:
                                   name, average, grade
     """
-    # TODO: For each student:
-    #   1. Extract grades (math, science, english, history values)
-    #   2. Call calculate_average()
-    #   3. Call get_letter_grade()
-    #   4. Build the student summary dict
-    # Then compute class-level stats from all the averages.
 
-    dict_students = {}
     student_stats = []
     grade_dist = {"A": 0, "B": 0, "C": 0, "D": 0, "F": 0, "N/A": 0}
     student_averages = []
@@ -161,31 +148,26 @@ def generate_report(students: list[dict]) -> dict:
     total_students = 0
     class_average = 0
 
-    for dictionaries in load_students("data/students.csv"):
+    for dictionaries in students:
         total_students += 1
         student_averages.append(calculate_average([dictionaries['math'], dictionaries['science'], dictionaries['english'], dictionaries['history']]))
         
-    highest_score = 0
+    highest_score = student_averages[0]
+    lowest_score = student_averages[0]
 
     for grade in student_averages:
         if grade > highest_score:
             highest_score = grade
-
-    lowest_score = highest_score
-    
-    for grade in student_averages:
         if grade < lowest_score:
             lowest_score = grade
-
-    class_average = calculate_average(student_averages)
-
-    for grade in student_averages:
         letter_grade = get_letter_grade(grade)
         grade_dist[letter_grade] += 1
 
+    class_average = calculate_average(student_averages)
+
     grade = calculate_average([dictionaries['math'], dictionaries['science'], dictionaries['english'], dictionaries['history']])
 
-    for dictionaries in load_students("data/students.csv"):
+    for dictionaries in students:
 
         grade = calculate_average([dictionaries['math'], dictionaries['science'], dictionaries['english'], dictionaries['history']])
 
@@ -195,14 +177,14 @@ def generate_report(students: list[dict]) -> dict:
             "grade": get_letter_grade(grade)
         })
     
-    dict_students["total_students"] = total_students
-    dict_students["class_average"] = class_average
-    dict_students["highest_average"] = highest_score
-    dict_students["lowest_average"] = lowest_score
-    dict_students["grade_distribution"] = grade_dist
-    dict_students["students"] = student_stats
-
-    return dict_students
+    return {
+        "total_students": total_students,
+        "class_average": class_average,
+        "highest_average": highest_score,
+        "lowest_average": lowest_score,
+        "grade_distribution": grade_dist,
+        "students": student_stats
+    }
 
 # ============================================================
 # FUNCTION 5: Write report to a file
@@ -234,23 +216,20 @@ def write_report(report: dict, filepath: str) -> None:
         report:   The dict returned by generate_report().
         filepath: Path to write the report file.
     """
-    # TODO: Open the file in write mode ("w").
-    #       Write each section with f-strings.
-    #       Use f.write() or print(..., file=f).
 
     students = load_students("data/students.csv")
-    dict_students = generate_report(students)
-    grade_distribution = dict_students['grade_distribution']
-    student_info = dict_students['students']
+    report = generate_report(students)
+    grade_distribution = report['grade_distribution']
+    student_info = report['students']
     
-    with open("grade_report.txt", "w") as f:
+    with open(filepath, "w") as f:
         f.write("*" * 30)
         f.write("\n    STUDENT GRADE REPORT:\n")
         f.write("*" * 30)
-        f.write(f"\nTotal students: {dict_students['total_students']}")
-        f.write(f"\nClass average: {dict_students['class_average']}%")
-        f.write(f"\nHighest average: {dict_students['highest_average']}%")
-        f.write(f"\nLowest average: {dict_students['lowest_average']}%\n")
+        f.write(f"\nTotal students: {report['total_students']}")
+        f.write(f"\nClass average: {report['class_average']}%")
+        f.write(f"\nHighest average: {report['highest_average']}%")
+        f.write(f"\nLowest average: {report['lowest_average']}%\n")
         f.write(f"\nGrade Distribution:")
 
         for letter, count in grade_distribution.items():
